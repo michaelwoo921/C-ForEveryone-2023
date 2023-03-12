@@ -5,8 +5,8 @@
 using namespace std;
 
 
-template <typename ForwardIterator>
-void square(ForwardIterator first, ForwardIterator last){
+template <typename T>
+void square(T first, T last){
   for(; first != last; first++){
     *first = (*first) * (*first);
   }

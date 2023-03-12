@@ -3,8 +3,6 @@
 
 using namespace std;
 
-
-
 class point {
    
    public: point(double x=0.0, double y=0.0): x(x), y(y) {};
@@ -25,7 +23,7 @@ class point {
 };
 
 template <class T>
-void swap(T& p, T& q){
+void swap_two(T& p, T& q){
 	T temp =p;
 	p =q;
 	q = temp;
@@ -35,7 +33,7 @@ void swap(T& p, T& q){
 int main(){
   point p(3.0), q(1.0, 2.5);
   cout << p << q << "the sum: " << p+q << endl;
-  // swap(p,q);
+  swap_two(p,q);
   cout << "after swap --- \n";
   cout << p << q;
   

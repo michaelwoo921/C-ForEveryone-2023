@@ -21,8 +21,8 @@ double integrate(gen g, int n){
 
 }
 
-template <class ForwIter>
-void print(ForwIter first, ForwIter last, const char* title){
+template <class T>
+void print(T first, T last, const char* title){
   cout << title << endl;
   while(first!= last)
     cout << *first++ << "\t";

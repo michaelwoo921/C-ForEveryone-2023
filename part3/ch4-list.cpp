@@ -12,7 +12,25 @@ class list_element {
 class list {
    public:
      list(): head(0), cursor(0){};
-     list(const int* arr, int n);
+     list(const int* arr, int n){
+      if(n==0){
+        head =0; cursor =0;
+      }else{
+        list_element* h;
+        head =cursor = new list_element(arr[0], 0);
+        for(int i=1;i<n;i++){
+          if(arr[i]){
+            h = new list_element(arr[i],0);
+            cursor -> next =h;
+            cursor = cursor -> next;
+          }
+          
+        }
+        cursor = head;
+      }
+  
+
+     };
      list(const list& lst);
      ~list();
      void prepend(int n);
@@ -45,11 +63,13 @@ list e(data,6);
 
 d.print();
 e.print();
+list na(a);
+na.print();
+
 
 return 0;
 }
 
-list::list(int* arr, int n){}
 
 list::list(const list& lst){
 if(lst.head ==0){
@@ -59,17 +79,20 @@ if(lst.head ==0){
  cursor = lst.head;
  list_element* h = new list_element();
  list_element* previous;
- head =h; 
- h -> d = lst.head -> d;
- previous = h;
  
  for(cursor =lst.head; cursor != 0;){
   //chain and create
   h = new list_element();
   h -> d = cursor -> d;
-  previous -> next = h;
+  if(cursor == lst.head){
+    head = h;
+    previous = h;
+  }else{
+    previous -> next =h;
+    previous = h;
+  }
   cursor = cursor -> next;
-  previous = h;
+ 
  }
  cursor = head;
 

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <string>
 #include<cassert>
 #include <ctime>
 #include <algorithm>
@@ -7,13 +8,17 @@
 
 using namespace std;
 
+
 enum class suit: short { SPADE, HEART, DIAMOND, CLUB};
 
 class pips {
 
   public:
     pips(int val): v(val) {assert(v>0 && v<14);} 
-    // friend ostream& operator<< (ostream &out, const pips& p);
+    friend ostream& operator<< (ostream &out, const pips& p){
+      out << p.v;
+      return out;
+    };
     int get_pips() { return v;}
 
   private: int v;
@@ -21,25 +26,31 @@ class pips {
 
 class card {
   public:
+    
     card(suit s=suit::SPADE, pips v=1): s(s), v(v){}
-    //friend ostream& operator<< (ostream& out, const card& c);
+    friend ostream& operator<< (ostream& out, card& c){
+      out << c.v<< c.out_suit()<< " ";
+      return out;
+    };
     suit get_suit(){return s;}
     pips get_pips(){return v; }
+
   
   private: suit s; pips v;
+       
+  string out_suit(){
+      switch(s){
+        case suit::SPADE: return "S";
+        case suit::HEART: return "H";
+        case suit::DIAMOND: return "D";
+        case suit::CLUB: return "C";
+        default: return "C";
+      }
+    };
 };
 
-// ostream& operator<< (ostream& out, const pips& p){
-//  out << p.v;
-  // return out;
-// }
 
-// ostream& operator<< (ostream& out, const card& c){
-//  cout << c.v << c.s;
-//  return out;
-// }
-
-void init_deck(vector<card> &d){
+void init_deck( vector<card> &d){
 	
    for(int i=1;i<14;i++){
      card c(suit::SPADE, i);
@@ -60,10 +71,17 @@ void init_deck(vector<card> &d){
 }
 
 void print(vector<card> &deck){
-  for(auto p = deck.begin(); p!= deck.end();p++)
-   // cout << (p -> get_suit()) ;
+  int i=0;
+  for(auto p = deck.begin(); p!= deck.end();p++){
+    if(i%13 ==0)
+      cout << "\n";
+    cout << *p ;
+    i++;
+  }
+
   cout << endl;
 }
+
 
 bool is_flush(vector<card> &hand){
   suit s = hand[0].get_suit();
@@ -83,7 +101,7 @@ bool is_straight(vector<card> &hand){
     return (pips_v[0] == pips_v[1] -1) && (pips_v[1] == pips_v[2] -1) &&
            (pips_v[2] == pips_v[3] -1) && (pips_v[3] == pips_v[4] -1);
   }
-  else  return (pips_v[1] ==2 && pips_v[2]==3 && pips_v[3] ==3 && pips_v[4] == 4)  ||
+  else  return (pips_v[1] ==2 && pips_v[2]==3 && pips_v[3] ==4 && pips_v[4] == 5)  ||
                (pips_v[1] ==10 && pips_v[2]==11 && pips_v[3] ==12 && pips_v[4] == 13); 
   
  
@@ -97,6 +115,7 @@ int main(){
  vector<card> deck(52);
  srand(time(0));
  init_deck(deck);
+ print(deck);
  int how_many;
  int flush_cnt =0;
  int str_cnt=0;
@@ -108,8 +127,10 @@ int main(){
    random_shuffle(deck.begin(), deck.end());
    vector<card> hand(5);
    int i=0;
-   for(auto p =deck.begin(); i<5; p++)
-     hand[i++] = *p;
+   for(auto p =deck.begin(); i<5; p++){
+      hand[i++] = *p;
+   }
+
    
    if(is_flush(hand))
      flush_cnt++;
