@@ -72,6 +72,8 @@ class hex_graph {
     
         vector<int> xmincost;
         vector<int> omincost;
+        vector<int> virtual_xmincost;
+        vector<int> virtual_omincost;
         vector<int> xpath; // 0 for "X" 1 for "O";
         vector<int> opath; 
 
@@ -80,170 +82,68 @@ class hex_graph {
 
   
 vector<int> hex_graph::initial_strat(){
-    vector<int> neighbor_moves;
-    vector<int> center_moves;
-    vector<int> good_moves;
+  
     cout <<"Using initial strategy" <<endl;
-
-    if(board[size/2] == color::EMPTY)
-        center_moves.push_back(size/2);
-    for(auto w: edgelist[size/2]){
-        if(board[w] == color::EMPTY)
-            center_moves.push_back(w);
-    }
-    for(auto w: virtual_edgelist[size/2]){
-        if(board[w] == color::EMPTY){
-            center_moves.push_back(w);
-        }
-    }
-
-
-    for(int k=0; k<size;k++){
-        if(board[k] == color::RED){
-            for(auto w: edgelist[k]){
-                if(board[w] == color::EMPTY){
-                    neighbor_moves.push_back(w);
-                }
-            }
-            for(auto w: virtual_edgelist[k]){
-                if(board[w] == color::EMPTY){
-                    // need more fine tuning?
-                    neighbor_moves.push_back(w);
-                }
-            }
-        }
-    }
-    for(int k=0;k<size;k++){
-        if(board[k]==color::BLUE){
-            for(auto w: edgelist[k]){
-                if(board[w] == color::EMPTY){
-                    neighbor_moves.push_back(w);
-                }
-            }
-            for(auto w: virtual_edgelist[k]){
-                if(board[w] == color::EMPTY){
-                    // need more fine tuning?
-                    neighbor_moves.push_back(w);
-                }
-            }
-        }
-    }
     vector<int> possible_moves;
+
+
+    for(int k=0;k<size;k++){
+        if(board[k] == color::EMPTY)
+            possible_moves.push_back(k);
+    }
+
+ 
 
     // remove duplicates 
     sort(possible_moves.begin(), possible_moves.end());
-    int temp;
-    for(int i=0; i<possible_moves.size();i++){
-        if(i==0){
-            temp = possible_moves[0];
-            good_moves.push_back(temp);
-        }
-        else{
-            if(possible_moves[i] != temp){
-                temp = possible_moves[i];
-                good_moves.push_back(temp);
-            }
-        }
-    }
 
-    return good_moves;
+    
+
+    return possible_moves;
         
 }
 
 vector<int> hex_graph::plausible_moves(){
-    vector<int> good_moves;
+    vector<int> possible_moves;
+    color rr =color::RED, bb = color::BLUE, ee = color::EMPTY;
+    // center moves
+    int xdist, odist, xvdist, ovdist;
+    for(int k=0;k<size;k++)
+        if(board[k]==color::EMPTY)
+            possible_moves.push_back(k);
+    return possible_moves;
 
-    return initial_strat();
-
-
-    // extend or block move which can lead to the end of game
-    if(num_moves<6 && initial_strat().size() < 25){
-        return initial_strat(); 
-    }
-
-    cout << "no more initial strategy "<< endl;
-
-
-    if(dijkstra("O") ==1){
-        for(auto w: max_cluster("O")){
-            for(auto k: edgelist[w]){
-                if(board[k] == color::EMPTY){
-                    move(k, color::BLUE);
-                    if(connected("O")){
-                        good_moves.push_back(k);
-                        return good_moves;
-                    }      
-                }
-            }
-        }
-    }
-
-    if(dijkstra("X") ==1){
-        for(auto w: max_cluster("X")){
-            for(auto k: edgelist[w]){
-                if(board[k] == color::EMPTY){
-                    move(k, color::RED);
-                    if(connected("X")){
-                        move_back(k);
-                        good_moves.push_back(k);
-                        return good_moves;
-                    }      
-                }
-            }
+    for(int k=0;k<size;k++){
+        if(board[k] == ee){
+            cout << "**************START\n";
+            cout << "xdist, odist, xvdist, ovdist: ";
+            xdist = dijkstra("X"); odist = dijkstra("O");
+            xvdist =virtual_dijkstra("X"); ovdist = virtual_dijkstra("O");
+            cout << xdist << " " << odist << " " << xvdist << " " << ovdist<<endl;
+            move(k, rr);
+            cout << "xdist, odist, xvdist, ovdist: ";
+            xdist = dijkstra("X"); odist = dijkstra("O");
+            xvdist =virtual_dijkstra("X"); ovdist = virtual_dijkstra("O");
+            cout << xdist << " " << odist << " " << xvdist << " " << ovdist<<endl;
+            move_back(k);
+            move(k, bb);
+            cout << "xdist, odist, xvdist, ovdist: ";
+            xdist = dijkstra("X"); odist = dijkstra("O");
+            xvdist =virtual_dijkstra("X"); ovdist = virtual_dijkstra("O");
+            cout << xdist << " " << odist << " " << xvdist << " " << ovdist<<endl;
+            move_back(k);
+            cout << "**************END\n";
         }
     }
 
 
 
-    if(extend_max_virtual_cluster().size()< 15){
-        // print out good moves
-        cout <<" good moves: ";
-        for(auto w: extend_max_virtual_cluster()){
-            good_moves.push_back(w);
-            cout << w << " ";
-        }
-        cout <<"\n";
-        // remove duplicates
-        
-        return good_moves;       
-    }
 
 
-    for(int k=0;k<size; k++){
-        if(board[k]==color::EMPTY){
-            good_moves.push_back(k);
-            
-        }
-    }
-    return good_moves;
 
-    // number of empty neighbors and next nearest bridge neighbors are less than 20
-    // then use this initial strategy 
-    if(initial_strat().size() < 25){
-        // print out good moves
-        cout <<" good moves: ";
-        for(auto w: initial_strat()){
-            cout << w << " ";
-        }
-        cout <<"\n";
-        return initial_strat();        
-    }
-
-
-    return extend_max_virtual_cluster();     
 
    
-        // what is a new strategy???  extend virtual path or path
-            
-        // find the largest x cluster or O cluster
-        // num_moves is small then check moves near previous moves and center
-        // block the move or extend move
-        // if "X" are almost winning then block the move
-        // if "O" is almost winning connect the bridge
-
-    
-        // 
-    
+    return possible_moves;
     
 }
 
@@ -260,12 +160,12 @@ int main(){
     // g.neighbor_test();
 
     // g.connection_test();
-    g.dijkstra_test();
+    // g.dijkstra_test();
 
     // g.strat_test();
 
     // g.monte_carlo_test();
-    // g.hex_program();
+    g.hex_program();
     
 }
 
@@ -436,16 +336,36 @@ vector<int> hex_graph::extend_max_virtual_cluster(){
 void hex_graph::print_cost(string str){
             // print out mincost
             if(str=="X"){
+                cout << "xmincost: "; 
                 for(int k=0;k<size;k++){
-                    int i = k/hsize, j = k % hsize;
-                    cout << "xmincost: " << xmincost[k] << "for ( " << i << ", "<< j <<" )\n";     
+                    if(k% hsize == 0)
+                        cout << endl;
+                    cout  << xmincost[k] << " ";     
                 }
+                cout << endl;
+                cout << "virtual xmincost: "; 
+                for(int k=0;k<size;k++){
+                    if(k% hsize == 0)
+                        cout << endl;
+                    cout  << virtual_xmincost[k] << " ";     
+                }
+                cout << endl;
             }
             else{
+                cout << "omincost: "; 
                 for(int k=0;k<size;k++){
-                    int i = k/hsize, j = k % hsize;
-                    cout << "omincost: " << omincost[k] << "for ( " << i << ", "<< j <<" )\n";     
+                    if(k% hsize == 0)
+                        cout << endl;
+                    cout  << omincost[k] << " ";     
                 }
+                cout << endl;
+                cout << "virtual omincost: "; 
+                for(int k=0;k<size;k++){
+                    if(k% hsize == 0)
+                        cout << endl;
+                    cout  << virtual_omincost[k] << " ";     
+                }
+                cout << endl;
             }
          
 }
@@ -487,9 +407,9 @@ hex_graph::hex_graph(int h): hsize(h), size(h*h){
     right_bridge.resize(hsize -1);
     
     xmincost.resize(size);
-    xpath.resize(size);
     omincost.resize(size);
-    opath.resize(size);
+    virtual_xmincost.resize(size);
+    virtual_omincost.resize(size);
 
     for(int k=0;k<size;k++){
         board[k] = color::EMPTY;
@@ -1166,7 +1086,7 @@ int hex_graph::dijkstra(string str){
     // X: red path from top to botom, O: blue path from east to west
 
     // initial setup
-    int dist = -1, c_cnt = 0, o_cnt = 0; // dist (time), c_cnt: number of elements reachable by time t =dist
+    int dist = 0, c_cnt = 0, o_cnt = 0; // dist (time), c_cnt: number of elements reachable by time t =dist
     bool cSet[size], oSet[size]; // o_cnt: size of oSet
     vector<int> mincost(size); // initially set to be -1 mincost is same as first passage time
     for(int k=0;k<size;k++){
@@ -1195,675 +1115,341 @@ int hex_graph::dijkstra(string str){
     if(c == color::BLUE)
         c_opp = color::RED;
 
-    // initial update of cSet (at time  =0) starting from oneside (cSet has all color c now)
+    // initial update of cSet and oSet
+    // step 1 include all elements whcih can be reached at time 0 to cSet
+    dist =0;
     for(auto k: one_side){
         if(board[k] == c){
-            if(dist<0)
-                dist =0;
             cSet[k] = true; c_cnt++; mincost[k] = 0;
         }
     }
     for(int k=0;k<size;k++)
-        if(cSet[k]){
-            for(auto w: cluster(k)){
+        if(cSet[k])
+            for(auto w: cluster(k))
                 if(!cSet[w]){
                     cSet[w] = true; c_cnt++; mincost[w]=0;
                 }
-            }
-        }
 
-    // initial update of oSet (at time  =0) starting from oneside (oSet has all color empty now)
+
+    // step 2 include all empty color neighbors of cSet and one side to oSet 
    for(auto k: one_side){
         if(board[k]== color::EMPTY){
             oSet[k] = true; o_cnt++; mincost[k]=1;
         }
     }
-    for(int k=0;k<size;k++){
-        if(cSet[k]){
+    for(int k=0;k<size;k++)
+        if(cSet[k])
+            for(auto w: edgelist[k])
+                if(!cSet[w] && !oSet[w] && board[w]==color::EMPTY){
+                    oSet[w] = true; o_cnt++; mincost[w]=1;     
+                }
+    // step 3 include color c clusters neighbors of oSet to oSet        
+    for(int k=0;k<size;k++)
+        if(oSet[k] && board[k]==color::EMPTY)
             for(auto w: edgelist[k]){
-                if(!cSet[w] && !oSet[w] && board[w] == color::EMPTY){
-                    oSet[w] = true; o_cnt++; 
-                    if(mincost[w] == -1)
-                        mincost[w] = mincost[k] + 1;
-                    if(mincost[w] > mincost[k] + 1)
-                        mincost[w] = mincost[k] +1;
+                if(!cSet[w] && !oSet[w] && board[w] ==c){
+                    oSet[w] = true; o_cnt++; mincost[w]=1;
                 }
             }
-        }
-    }
+    for(int k=0;k<size;k++)
+        if(oSet[k] && board[k]==c)
+            for(auto w: cluster(k)){
+                if(!cSet[w] && !oSet[w]){
+                    oSet[w] = true; o_cnt++; mincost[w]=1;
+                }
 
-    // if cSet reaches opposite side then return
-    for(auto w: opposite_side){
-        if(cSet[w] && board[w] == c)
-            return dist;
-    }
-    for(auto w: opposite_side){
-        if(cSet[w] && board[w] == color::EMPTY)
-            return dist;
-    }
-
+            }
+        
+ 
+    // increment time by 1 then update cSet and update oSet
     while(o_cnt >0){
-        // update cSet and increment time by 1
-        for(int k=0;k<size;k++){ 
+        dist++;
+        // update cSet which can be reached by time (dist)
+        for(int k=0;k<size;k++){  
             if(oSet[k]){ 
                 cSet[k] = true; c_cnt++; oSet[k] = false; o_cnt--;
             }
         }
-       
-        for(int k=0;k<size;k++){ // cSet includes cluster of color c
-            if(cSet[k] && board[k] ==c){
-                for(auto w: cluster(k)){
-                    if(!cSet[w]){
-                        cSet[w] =true; c_cnt++;
-                        mincost[w] = mincost[k];
-                    }
-                }
-            }
-        }
-        // oSet is empty now and update oSet
-        for(int k=0;k<size;k++){
-            if(cSet[k]){
-                for(auto w: edgelist[k]){
-                    if(!cSet[w] && !oSet[w] && board[w] == c){
-                        oSet[w] = true; o_cnt++;             
-                        if(mincost[w]==-1)
-                            mincost[w] = mincost[k];
-                        if(mincost[w] > mincost[k]){
-                            mincost[w] = mincost[k];
-                        }                          
-                    }
-                }
-            }
-        }
 
+        // update oSet which can be reached by time = dist +1
+        // step 1: all empty color neighbor of cSets to oSet
         for(int k=0;k<size;k++){
-            if(cSet[k]){
-                for(auto w: edgelist[k]){
+            if(cSet[k] && mincost[k] ==dist){
+                for(auto w: edgelist[k])
                     if(!cSet[w] && !oSet[w] && board[w] == color::EMPTY){
-                        oSet[w] = true; o_cnt++;             
-                        if(mincost[w]==-1)
-                            mincost[w] = mincost[k]+1;
-                        if(mincost[w] > mincost[k]+1){
-                            mincost[w] = mincost[k]+1;
-                        }                          
-                    }
-                }
+                        oSet[w] = true; o_cnt++;
+                        if(mincost[w]==-1 || mincost[w] > mincost[k]){
+                            mincost[w] = mincost[k] + 1;
+                        }                                
+                    }           
             }
         }
-
-
-        cout << " dist "<< dist << "\n";
-        cout<<"mincost*********\n";
-        draw_board();
-        for(int k=0;k<size;k++){
-            if(k% 5 ==0)
-                cout << endl;
-            cout << mincost[k] << " ";
-        }
-        cout << endl;
-        // cSet reaches opposite side then return
-     
-        for(auto w: opposite_side){
-            if(cSet[w] && board[w]== c)
-                return dist;
-        }
-        for(auto w: opposite_side){
-            if(cSet[w] && board[w]== color::EMPTY)
-                return dist+1;
-        }
-        dist++;
-
+        
+        // step 2: include color c clusters neighbors of oSet to oSet       
+        for(int k=0;k<size;k++)
+            if(oSet[k] && board[k] == color::EMPTY)
+                for(auto w: edgelist[k]){
+                    if(!cSet[w] && !oSet[w] && board[w] ==c){
+                        oSet[w] = true; o_cnt++;
+                        mincost[w] =mincost[k];             
+                    }
+                }
+        for(int k=0;k<size;k++)
+            if(oSet[k] && board[k] == c){
+                for(auto w: cluster(k))
+                    if(!cSet[w] && !oSet[w]){
+                        oSet[w] = true; o_cnt++;
+                        mincost[w] =mincost[k];     
+                    }
+            }  
+                  
     }
+    // save mincost to private class variables
+    for(int k=0;k<size; k++)
+        if(str=="X")
+            xmincost[k] =mincost[k];
+        else
+            omincost[k] =mincost[k];
 
 
-    
-    return -1;
 
-
-
+   
+    // either cSet reaches opposite side in min_dist time or cannot be reached (return -1)
+    // or oppoaite side not reachable
+    int min_dist =-1;
+    for(auto k: opposite_side){
+        if(mincost[k]>=0 && min_dist<0)
+            min_dist = mincost[k]; 
+        if(min_dist > mincost[k] && mincost[k] >=0){
+            min_dist = mincost[k];
+        }
+    }
+    return min_dist;
 
 }
 
 
 int hex_graph::virtual_dijkstra(string str){
-      // str is either X or O
-    // return dist from onside to arr of positions plus arr of positions to the other side   
+    // str is either X or O
+    // return time which takes from oneside to the other side   
     // X: red path from top to botom, O: blue path from east to west
 
-    int dist = -1;  
-    // dist is a distance from one end to arr plus distance from arr to the other 
-    // setup cSet and oSet initially set false,  c_cnt: 0
-    bool cSet[size], oSet[size];
-    vector<int> mincost(size);
-    int c_cnt = 0; // size of cSet.  
+    // initial setup
+    color c = str == "X" ? color::RED : color::BLUE; // color of player ("X" or "O")
+    color c_opp =c;  // color of opponent (second player)
+    if(c == color::RED)
+        c_opp = color::BLUE;
+    if(c == color::BLUE)
+        c_opp = color::RED;
+
+    int dist = 0, c_cnt = 0, o_cnt = 0; // dist (time), c_cnt: number of elements reachable by time t =dist
+    bool cSet[size], oSet[size]; // o_cnt: size of oSet
+    vector<int> mincost(size); // initially set to be -1 mincost is same as first passage time
     for(int k=0;k<size;k++){
         cSet[k]=false; oSet[k] = false;  mincost[k]=-1;  
     }
 
     // setup one side and opposite side
     vector<int> one_side, opposite_side;
+    vector<vector<int>> one_side_bridge, opposite_side_bridge;
+    one_side_bridge.resize(hsize-1);
+    opposite_side_bridge.resize(hsize-1);
+
     if(str == "X"){
         for(auto w: top_side)
             one_side.push_back(w); 
         for(auto w: bottom_side)
             opposite_side.push_back(w); 
+        for(int k=0;k<hsize-1; k++){
+            for(auto w: top_bridge[k])
+                one_side_bridge[k].push_back(w);
+        }
+        for(int k=0;k<hsize-1; k++){
+            for(auto w: bottom_bridge[k])
+                opposite_side_bridge[k].push_back(w);
+        }
+      
     }
     if(str == "O"){
         for(auto w: left_side)
             one_side.push_back(w); 
         for(auto w: right_side)
             opposite_side.push_back(w); 
+        for(int k=0;k<hsize-1; k++){
+            for(auto w: left_bridge[k])
+                one_side_bridge[k].push_back(w);
+        }
+        for(int k=0;k<hsize-1; k++){
+            for(auto w: right_bridge[k])
+                opposite_side_bridge[k].push_back(w);
+        }
     }
 
-    color c = str == "X" ? color::RED : color::BLUE;
-    color c_opp =c;  // color of opponent
-    if(c == color::RED)
-        c_opp = color::BLUE;
-    if(c == color::BLUE)
-        c_opp = color::RED;
 
-    // initial update of cSet and oSet at oneside
+    // initial aetup of cSet and oSet at time 0
+    // step 1 include all elements which can be reached by time=0 to cSet
     for(auto k: one_side){
         if(board[k] == c){
-            if(dist<0)
-                dist =0;
             cSet[k] = true; c_cnt++; mincost[k] = 0;
         }
     }
-    if(str =="X"){
-        for(int k=0; k<hsize -1; k++){
-            if(board[k] != c_opp && board[k+1] != c_opp){
-                if(board[k+ hsize] == c){
-                    if(dist<0)
-                        dist =0;
-                    cSet[k+hsize] = true; c_cnt++; mincost[k+hsize] = 0;
-                }
-
-            }
+    for(auto br: one_side_bridge){
+        int first=br[0], second=br[1], third=br[2];
+        if(board[third] == c && board[first]!=c_opp && board[second]!= c_opp){
+            cSet[third]=true; c_cnt++; mincost[third] = 0;
         }
     }
-    if(str =="O"){
-        for(int k=0; k<size -hsize; k += hsize){
-            if(board[k] != c_opp && board[k+ hsize] != c_opp){
-                if(board[k+ 1] == c){
-                    if(dist<0)
-                        dist =0;
-                    cSet[k+1] = true; c_cnt++; mincost[k+1] = 0;
-                }
-
-            }
-        }
-    }
-        // oSet
-    for(auto k: one_side){
-        if(board[k] == color::EMPTY){
-   
-            oSet[k] = true; mincost[k] = 1;
-        }
-    }
-    if(str =="X"){
-        for(int k=0; k<hsize -1; k++){
-            if(board[k] == color::EMPTY && board[k+1] == color::EMPTY){
-                if(board[k+ hsize] == color::EMPTY){
-            
-                    oSet[k+hsize] = true; mincost[k+hsize] = 1;
-                }
-
-            }
-        }
-    }
-    if(str =="O"){
-        for(int k=0; k<size -hsize; k += hsize){
-            if(board[k] == color::EMPTY && board[k+ hsize] == color::EMPTY){
-                if(board[k+ 1] == color::EMPTY){
-                    oSet[k+1] = true; mincost[k+1] = 1;
-                }
-
-            }
-        }
-    }
-
-
-    for(int k=0;k<size; k++){
-        if(cSet[k]){
-            for(auto w: virtual_cluster(k)){
-                if(!cSet[w]){
-                    cSet[w] = true; c_cnt++; mincost[w] = mincost[k];
-                }
-            }
-        }
-    }
-
-
-    // if initial update (with dist 0) includes arr el then skip the following while loop
-    int temp=1;
-    vector<int> arr;
-    for(auto k: arr){
-        if(cSet[k]){
-            temp=-1; break; // temp = -1 means c_cnt>0 and  already reached arr so it skips while loop
-        }
-    }
-    // if initial cset with dist 0 is empty include cSet width dist 1
-   
-    if(c_cnt ==0){
-        for(auto k: one_side){
-            if(board[k] == color::EMPTY){
-                cSet[k]= true; c_cnt++; dist=1; mincost[k]=1; 
-            }
-        }
-        if(str =="X"){
-            for(int k=0; k<hsize -1; k++){
-                if(board[k] == color::EMPTY && board[k+1] == color::EMPTY){
-                    if(board[k+ hsize] == color::EMPTY){   
-                        cSet[k + hsize]  = true; c_cnt++; mincost[k + hsize] = 1; dist =1;
-                    }
-                }
-            }
-        }
-        if(str =="O"){
-            for(int k=0; k<size -hsize; k += hsize){
-                if(board[k] == color::EMPTY && board[k+ hsize] == color::EMPTY){
-                    if(board[k+ 1] == color::EMPTY){
-                        cSet[k+1] = true; c_cnt++; mincost[k+1] = 1; dist=1;
-                    }
-
-                }
-            }
-        }
-    
-        // if reached arr then skip while loop
-        for(auto k: arr){
-            if(cSet[k]){
-                temp =-1; break;
-            }
-        }
-   
-    }
-    // cSet is empty 
-
-   
-   
-    if(c_cnt ==0)
-        return -1;
-    // cSet is not empty and dist is either 0 or 1
-
-
-   // when c_cnt does not update, while loop runs until it reaches arr
- 
-    while(c_cnt< size && temp>0){
-        temp = c_cnt;
-        // update oSet which can be reached from cSet by one unit
-        for(int k=0;k<size; k++){
-            for(auto w: edgelist[k]){
-                if(cSet[k] && !oSet[w] && !cSet[w] && board[w] == color::EMPTY){
-                    oSet[w] = true; 
-                    if(mincost[w] == -1){
-                        mincost[w] = mincost[k] +1;
-                    }
-                    if(mincost[w] > mincost[k]){
-                        mincost[w] = mincost[k] +1;
-                    }
-                    
-                }
-            }
-            for(auto w: edgelist[k]){
-                if(cSet[k] && !oSet[w] && !cSet[w] && board[w] == c){
-                    oSet[w] = true; 
-                    if(mincost[w] == -1){
-                        mincost[w] = mincost[k];
-                    }
-                    if(mincost[w] > mincost[k]){
-                        mincost[w] = mincost[k];
-                    }
-                    
-                }
-            }
-        }
-
-        for(int k=0;k<size;k++){
-            for(auto w: virtual_edgelist[k]){        
-                // case: w has  color c
-                if(cSet[k]&& !oSet[w]&& !cSet[w] && bridge_neighbor(k,w)==2 && board[w] == c){
-                    oSet[w] = true; 
-                    if(mincost[w] == -1){
-                        mincost[w] = mincost[k];
-                    }
-                    if(mincost[w] > mincost[k]){
-                        mincost[w] = mincost[k];
-                    } 
-                }
-            }
-            for(auto w: virtual_edgelist[k]){        
-                // case: w has empty color
-                if(cSet[k]&& !oSet[w]&& !cSet[w] && bridge_neighbor(k,w)==2 && board[w] == color::EMPTY){
-                    oSet[w] = true; 
-                    if(mincost[w] == -1){
-                        mincost[w] = mincost[k] +1;
-                    }
-                    if(mincost[w] > mincost[k]){
-                        mincost[w] = mincost[k] +1;
-                    } 
-                }
-            }
-        }
-        // check if oSet is empty (break)
-        // include oSet to cSet which has zero unit away
-        int temposet =-1; // -1 means oSet empty 
-        for(int k=0;k<size;k++){
-            if(oSet[k] && mincost[k] == dist && temposet <0){
-                temposet =1; 
-            }
-            if(oSet[k] &&  mincost[k] == dist){
-                oSet[k] = false; cSet[k] = true; c_cnt++;
-            }
-        }
-        if(temposet <0)
-            break;
-
-
-
-        for(int k=0;k<size;k++){
-            if(cSet[k]){
-                for(auto w: cluster(k)){
-                    if(oSet[w]){
-                        cSet[w] = true; oSet[w] = false; c_cnt++;
-                    }
-                }
-            }
-
-        }
-
- 
-
-        // check if arr includes cSet element if it does then break from while loop
-        int temp_arr=-1;
-        for(auto w: arr){
-            if(cSet[w]){
-                temp_arr=1;
-                break; // 
-            }
-        }
-        if(temp_arr == 1){
-            break; 
-        }
         
-        // update dist 
+    for(int k=0;k<size;k++)
+        if(cSet[k])
+            for(auto w: virtual_cluster(k))
+                if(!cSet[w]){
+                    cSet[w] = true; c_cnt++; mincost[w]=0;
+                }
+        
+    // step 2 include empty colors on one side and  empty colors neighbors(neighbor, bridge neighbor) of cSet to oSet
+   for(auto k: one_side){
+        if(board[k]== color::EMPTY){
+            oSet[k] = true; o_cnt++; mincost[k]=1;
+        }
+    }
+    for(auto br: one_side_bridge){
+        int first=br[0], second=br[1], third=br[2];
+        if(board[third] == color::EMPTY && board[first]==color::EMPTY 
+           && board[second] == color::EMPTY){
+            oSet[third]=true; o_cnt++; mincost[third] =1;
+        }
+    }
+    for(int k=0;k<size;k++)
+        if(cSet[k])
+            for(auto w: edgelist[k])
+                if(!cSet[w] && !oSet[w] && board[w] == color::EMPTY){
+                    oSet[w] = true; o_cnt++; mincost[w]=1;     
+                }
+    for(int k=0;k<size;k++)
+        if(cSet[k])
+            for(auto w: virtual_edgelist[k])
+                if(!cSet[w] && !oSet[w] && board[w] == color::EMPTY
+                    && bridge_neighbor(k, w) == 2){
+                    oSet[w] = true; o_cnt++; mincost[w]=1;     
+                }
+
+
+    // step 3 include all color c virtual clusters neighboring oSet to oSet 
+    // (elements which can be reached by time 1)          
+
+    for(int k=0;k<size;k++)
+        if(oSet[k] && board[k]==color::EMPTY){
+            for(auto w: edgelist[k])
+                if(!cSet[w] && !oSet[w] && board[w]==c){
+                    oSet[w] = true; o_cnt++; mincost[w] = 1;
+                }
+        }
+    for(int k=0;k<size;k++)
+        if(oSet[k] && board[k]==color::EMPTY){
+            for(auto w: virtual_edgelist[k])
+                if(!cSet[w] && !oSet[w] && board[w]==c && bridge_neighbor(k,w)==2){
+                    oSet[w] = true; o_cnt++; mincost[w] = 1;
+                }
+        }
+    for(int k=0;k<size;k++)
+        if(oSet[k] && board[k]==c){
+            for(auto w: virtual_cluster(k))
+                if(!oSet[w]){
+                    oSet[w] = true; o_cnt++; mincost[w] = 1;
+                }
+        }
+
+    // increment time by one then update cSet and update oSet in a while loop
+    while(o_cnt >0){ 
         dist++;
-        
-
-    }
-
-   
-   // reaching here means either one side cannot reaches arr or reaches arr
-   temp= -1;
-    for(auto w: arr){
-        if(cSet[w]){
-            temp=1;
-        }
-    }
-    if(temp==-1)
-        return -1; 
-    // now path reached arr 
-    for(auto w: arr){
-        cSet[w]= true; oSet[w] = false; mincost[w] = dist;
-    }
-
-
-
-    for(int k=0;k<size;k++){
-        if(cSet[k] && board[k] == c){
-            for(auto w: virtual_cluster(k)){
-                if(!cSet[w]){
-                    cSet[w] = true; c_cnt++; mincost[w] = mincost[k];
-                }
-            }
-        }
-    }
-
-
-
-
-    // check if opposite side include cSet
-    for(auto w: opposite_side){
-        if(cSet[w]){
-            mincost[w] = dist; 
-            return dist;
-        }
-    }
-    if(str =="X"){
-        for(int k=size -hsize; k<size-1; k++){
-            if(board[k] != c_opp && board[k+1] != c_opp){
-                if(board[k- hsize+1] == c){
-                    if(cSet[k-hsize+1]){
-                        mincost[k-hsize+1] = dist; 
-                        return dist;
-                    }
-                }
-
-            }
-        }
-    }
-    if(str =="O"){
-        for(int k=hsize-1; k<size -hsize; k += hsize){
-            if(board[k] != c_opp && board[k+ hsize] != c_opp){
-                if(board[k+ hsize-1] == c){
-                    if(cSet[k+hsize-1]){
-                        mincost[k+hsize-1] = dist;
-                        return dist;
-                    }
-                }
-
-            }
-        }
-    }
-
-
-    // cSet includes arr and update cSet until it reaches the opposite side
-    while(c_cnt< size){
-        temp = c_cnt;
-        // update oSet which can be reached from cSet by one unit
-        for(int k=0;k<size; k++){
-            for(auto w: edgelist[k]){
-                if(cSet[k] && !oSet[w] && !cSet[w] && board[w] == color::EMPTY){
-                    oSet[w] = true; 
-                    if(mincost[w] == -1){
-                        mincost[w] = mincost[k] +1;
-                    }
-                    if(mincost[w] > mincost[k]){
-                        mincost[w] = mincost[k] +1;
-                    }
-                    
-                }
-            }
-        }
-        for(int k=0;k<size; k++){
-            for(auto w: edgelist[k]){
-                if(cSet[k] && !oSet[w] && !cSet[w] && board[w] == c){
-                    oSet[w] = true; 
-                    if(mincost[w] == -1){
-                        mincost[w] = mincost[k];
-                    }
-                    if(mincost[w] > mincost[k]){
-                        mincost[w] = mincost[k];
-                    }
-                    
-                }
-            }
-        }
-
-        for(int k=0;k<size;k++){
-            for(auto w: virtual_edgelist[k]){        
-                // case: w has empty color
-                if(cSet[k]&& !oSet[w] && !cSet[w] && bridge_neighbor(k,w)==2 && board[w] == color::EMPTY){
-                    oSet[w] = true; 
-                    if(mincost[w] == -1){
-                        mincost[w] = mincost[k] +1;
-                    }
-                    if(mincost[w] > mincost[k]){
-                        mincost[w] = mincost[k] +1;
-                    } 
-                }
-            }
-
-        }
-
-  
-        for(int k=0;k<size;k++){
-            for(auto w: virtual_edgelist[k]){        
-                // case: w has empty color
-                if(cSet[k]&& !oSet[w] && !cSet[w] && bridge_neighbor(k,w)==2 && board[w] == c){
-                    oSet[w] = true; 
-                    if(mincost[w] == -1){
-                        mincost[w] = mincost[k];
-                    }
-                    if(mincost[w] > mincost[k]){
-                        mincost[w] = mincost[k];
-                    } 
-                }
-            }
-        
-        }
-        
-         // break if oSet is empty
-        // include oSet to cSet and increment dist by 1
-        int temposet =-1; // -1 means oSet empty 
-         for(int k=0;k<size;k++){
-            if(oSet[k] &&  temposet <0){
-                temposet =1;
-            }
-         
-        }
-        if(temposet == -1){
-            cout <<"haha! break";
-            break;
-        }
-  
-
-
-
-        for(int k=0;k<size;k++){
+        // update cSet.
+        // step 1:  include all elements which can be reached by time (dist) to cSet
+        for(int k=0;k<size;k++)
             if(oSet[k] && mincost[k] == dist){
-               oSet[k] = false; cSet[k] = true; c_cnt++;
+                cSet[k] =true; c_cnt++; oSet[k] = false; o_cnt--;
             }
-        }
+            
+    
 
+        // update oSet
+        // step 2 include all neighboring empty colors of cSet to oSet 
         for(int k=0;k<size;k++){
-            if(cSet[k]){
+            if(cSet[k] && mincost[k]== dist){
+                for(auto w: edgelist[k])
+                    if(!cSet[w] && !oSet[w] && board[w] == color::EMPTY){
+                        oSet[w] = true; o_cnt++;
+                        if(mincost[w]==-1 || mincost[w] > mincost[k]){
+                            mincost[w] = mincost[k]+1;                           
+                        }                                
+                    }           
+            }
+        }
+        for(int k=0;k<size;k++){
+            if(cSet[k] && mincost[k] == dist){
+                for(auto w: virtual_edgelist[k])
+                    if(!cSet[w] && !oSet[w] && bridge_neighbor(k,w) ==2 && board[w]== color::EMPTY){
+                        oSet[w] = true; o_cnt++;
+                        if(mincost[w]==-1 || mincost[w] > mincost[k]){
+                            mincost[w] = mincost[k]+1;                           
+                        }                                
+                    }           
+            }
+        }
+
+        // step 3 include color c virtual clusters neighboring oSet to oSet          
+        for(int k=0;k<size;k++)
+            if(oSet[k]){
+                for(auto w: edgelist[k]){
+                    if(!cSet[w] && !oSet[w] && board[w] ==c){
+                        oSet[w] = true; o_cnt++;
+                        mincost[w]=mincost[k];
+                    }
+                }
+                for(auto w: virtual_edgelist[k]){
+                    if(!cSet[w] && !oSet[w] && board[w] ==c && bridge_neighbor(k, w)==2){
+                        oSet[w] = true; o_cnt++;
+                        mincost[w]=mincost[k];
+                    }
+                }
+            }
+        for(int k=0;k<size;k++)
+            if(oSet[k] && board[k]==c)
                 for(auto w: virtual_cluster(k)){
-                    if(!cSet[w]){
-                        cSet[w] = true;
-                        mincost[w] = mincost[k];
-                        c_cnt++;
-                    }
-                    
-                }
-            }
-        }
-
-        // check if opposite side include cSet
-        for(auto w: opposite_side){
-            if(cSet[w]){
-                return dist;
-            }
-        }
-        if(str =="X"){
-            for(int k=size -hsize; k<size-1; k++){
-                if(board[k] != c_opp && board[k+1] !=c_opp){
-                    if(board[k- hsize+1] == c && cSet[k-hsize+1]){
-                        return dist;
+                    if(!cSet[w] && !oSet[w]){
+                        oSet[w] = true; o_cnt++;
+                        mincost[w]= mincost[k];
                     }
                 }
-            }
-        }
-        if(str =="O"){
-            for(int k=hsize-1; k<size -hsize; k += hsize){
-                if(board[k] != c_opp && board[k+ hsize] != c_opp){
-                    if(board[k+ hsize-1] == c && cSet[k+hsize-1]){
-                        return dist;
-                        
-                    }
-                }
-            }
-        }
-        // update dist
-        dist++;
-
-        if(str =="X"){
-            for(int k=size -hsize; k<size-1; k++){
-                if(board[k] != c_opp && board[k+1] !=c_opp){
-                    if(board[k- hsize+1] == color::EMPTY && cSet[k-hsize+1]){
-                        return dist+1;
-                    }
-                }
-            }
-        }
-        if(str =="O"){
-            for(int k=hsize-1; k<size -hsize; k += hsize){
-                if(board[k] != c_opp && board[k+ hsize] != c_opp){
-                    if(board[k+ hsize-1] == color::EMPTY && cSet[k+hsize-1]){
-                        return dist+1;
-                        
-                    }
-                }
-            }
-        }
-
-        // check oSet is empty if not include to cSet
-        if(temp == c_cnt){ // oSet was empty 
-            return -1; // cannot be reach to opposite side
-        }
     }
 
+    // save mincost to class variable
+    for(int k=0;k<size; k++)
+        if(str=="X")
+            virtual_xmincost[k] =mincost[k];
+        else
+            virtual_omincost[k] =mincost[k];
 
-        for(auto w: opposite_side){
-            if(cSet[w]){
-                return dist;
-            }
-        }
 
-        if(str =="X"){
-            for(int k=size -hsize; k<size-1; k++){
-                if(board[k] == color::EMPTY && board[k+1] == color::EMPTY){
-                    if(board[k- hsize+1] == c && cSet[k-hsize+1]){
-                        return dist;
-                    }
-                }
-            }
-        }
-        if(str =="O"){
-            for(int k=hsize-1; k<size -hsize; k += hsize){
-                if(board[k] == color::EMPTY && board[k+ hsize] == color::EMPTY){
-                    if(board[k+ hsize-1] == c && cSet[k+hsize-1]){
-                        return dist;
-                        
-                    }
-                }
-            }
-        }
-        if(str =="X"){
-            for(int k=size -hsize; k<size-1; k++){
-                if(board[k] == color::EMPTY && board[k+1] == color::EMPTY){
-                    if(board[k- hsize+1] == color::EMPTY && cSet[k-hsize+1]){
-                        return dist+ 1;
-                    }
-                }
-            }
-        }
-        if(str =="O"){
-            for(int k=hsize-1; k<size -hsize; k += hsize){
-                if(board[k] == color::EMPTY && board[k+ hsize] == color::EMPTY){
-                    if(board[k+ hsize-1] == color::EMPTY && cSet[k+hsize-1]){
-                        return dist+ 1;
-                        
-                    }
-                }
-            }
-        }
+    // either cSet reaches opposite side in time = min_dist or cannot be reached (-1)
+    int min_dist =-1;
+    for(auto k: opposite_side){
+        if(cSet[k] && min_dist<0)
+            min_dist = mincost[k];
+        if(cSet[k] && min_dist> mincost[k])
+            min_dist = mincost[k];
+    }
+    for(auto br: opposite_side_bridge){
+        int first=br[0], second=br[1], third=br[2];
+        if(cSet[third] && board[first] == color::EMPTY && board[second] == color::EMPTY
+            && board[third] != c_opp)
+            if(min_dist <0 || mincost[third] < min_dist)
+                min_dist = mincost[third]; 
+    }
 
-    cout << "aaa \n";
-    return -1;
+    return min_dist;
+
 }
-
 
 
 void hex_graph::randomplay(int k, color c){
@@ -1891,7 +1477,6 @@ void hex_graph::randomplay(int k, color c){
     }
 
 };
-
 
 int hex_graph::monte_carlo(){
 
@@ -1936,145 +1521,6 @@ int hex_graph::monte_carlo(){
     return best_pos;
     
 };
-
-
-
-
-
-
-
-
-
-
-
-
-// to be deleted
-// bool hex_graph::dijkstra(string str){
-//     // str is either X or O
-//     // return true if there is a path for str from one side to the opposite side
-//     // X: red path from top to botom, O: blue path from east to west
-
-//     // setup cSet and oSet initially set false, mincost: -1, c_cnt: 0
-//     bool cSet[size], oSet[size];
-//     vector<int> mincost(size);
-//     vector<int>path(size);
-//     int c_cost =-1; // used to update cSet. all elements of cSet has cost less than or equal to c_cost
-//     int c_cnt = 0; // size of cSet.  
-//     for(int k=0;k<size;k++){
-//         cSet[k]=false; oSet[k] = false; 
-//          mincost[k] =-1; path[k]= -1;
-     
-        
-//     }
-
-//     // setuo one side and opposite side
-//     vector<int> one_side, opposite_side;
-//     if(str == "X"){
-//         for(int k=0; k<hsize; k++)
-//             one_side.push_back(k); // top side 0th row
-//         for(int k=size - hsize; k<size; k++)
-//             opposite_side.push_back(k); // bottom side,last row
-//     }
-//     if(str == "O"){
-//         for(int k=0; k<size; k += hsize)
-//             one_side.push_back(k); // left side 0th column
-//         for(int k=hsize -1; k<size; k += hsize)
-//             opposite_side.push_back(k); // right side,last column
-//     }
-
-//     // initial update of cSet at oneside
-//     color c = str == "X" ? color::RED : color::BLUE;
-//     color c_opp;  // color of opponent
-//     if(c == color::RED)
-//         c_opp = color::BLUE;
-//     if(c == color::BLUE)
-//         c_opp = color::RED;
-//     for(auto k: one_side){
-//         if(board[k] == c){
-//             cSet[k] = true; 
-//            c_cnt++; c_cost =0;
-            
-//         mincost[k] =0; path[k]= k;
-        
-//         }
-//         if(board[k] == color::EMPTY){
-//             cSet[k] = true; mincost[k] =1; path[k]=k; c_cnt++;
-//             cout <<"***"<< mincost[k] << "&&&&";
-//         }
-//     }
-//     int temp = c_cnt; // when c_cnt does not update, while loop exits
-//     while(c_cnt< size && temp>0){
-//         temp = c_cnt;
-//         // update oSet which can be reached from cSet at most one unit
-//         for(int k=0;k<size; k++){
-//             for(auto w: edgelist[k]){
-//                 // case: w has color c
-//                 if(cSet[k] && !cSet[w] && board[w] == c){
-//                     oSet[w] = true; 
-//                     if(mincost[w] == -1) {
-//                         mincost[w] = mincost[k]; path[w] =k;
-//                     }
-//                     if(mincost[w]> mincost[k]){
-//                         mincost[w] = mincost[k]; path[w] =k;
-//                     }
-//                 }
-//                 // case: w has empty color
-//                 if(cSet[k] && !cSet[w] && board[w] == color::EMPTY){
-//                     oSet[w] = true; 
-//                     if(mincost[w] == -1) {
-//                         mincost[w] = mincost[k]+ 1; path[w] =k;
-//                     }
-//                     if(mincost[w]> mincost[k]){
-//                         mincost[w] = mincost[k]+1; path[w] =k;
-//                     }
-//                 }
-
-//             }
-//         }
-//         // move elements of oSet which has cost c_cost to cSet
-//         for(int k=0;k<size;k++){
-//             if(oSet[k] && mincost[k] == c_cost){
-//                 cSet[k] = true; oSet[k] = false; c_cnt++;
-//             }
-//         }
-        
-//         if(temp == c_cnt){
-//             c_cost +=1;
-//             // increment c_cost by 1
-//             // move elements of oSet which has cost c_cost to cSet
-//             for(int k=0;k<size;k++){
-//                 if(oSet[k] && mincost[k] == c_cost){
-//                     cSet[k] = true; oSet[k] = false; c_cnt++;
-//                 }
-//             }
-
-//         }
-//         // exit the loop if c_cost becomes size;
-//         if(c_cost >= size)
-//             break;
-            
-//     }
-//     // print_cost();
-//     // print_path();
-//     for(int k=0;k<size;k++){
-//         if(str == "X"){
-//             xmincost[k] =mincost[k]; xpath[k] =path[k];
-//         }
-//         else{
-//             omincost[k] =mincost[k]; opath[k] =path[k];
-//         }
-//     }
-    
-//     for(auto k: opposite_side){
-//         if(cSet[k] && mincost[k] == 0)
-//             return true;
-//     }
-
-//     return false;
-
-// }
-
-
 
 
 
@@ -2151,15 +1597,6 @@ void hex_graph::edge_test(){
         if(ch !="y")
             break;
     }
-
-
-
-
-  
-
-
-  
-
 
     draw_board();
     cout << "\n*****edge_list test ***** ";
@@ -2464,75 +1901,69 @@ void hex_graph::neighbor_test(){
 }
 
 void hex_graph::dijkstra_test(){
-    // vector<int> vec_red = {24};
-    // int k =size/2;
-   
-    color rr= color::RED, bb = color::BLUE, ee = color::EMPTY;
-    // for(auto w: vec_red){
-    //     move(w, rr);   
-    // }
-   
-      
     int i,j, k;
     string c, str;
+   
+    color rr= color::RED, bb = color::BLUE, ee = color::EMPTY;
     while(true){
-        cout << "enter i and j and letter r or b or back \n";
+        
+        cout << "enter i and j and str (r b any) \n";
         cin >> i >> j;
-        cin >> c;
         k = i*hsize +j;
+        cin >> c;
         if(c=="r"){
             move(k, rr);
             str = "X";
-        }else if(c=="b"){
+        }else {
             move(k, bb);
             str = "O";
-        }else{
-            move_back(k);
         }
         draw_board();
-        cout << str << " dijkstra dist " << dijkstra(str)<< endl;
-        cout << str << " virtual dijkstra dist " << virtual_dijkstra(str)<< endl;
-    
+        // cout  << " x dijkstra dist " << dijkstra("X")<< endl;
+        cout  << "virtual  x dijkstra dist " << virtual_dijkstra("X")<< endl;
+        // cout  << " O dijkstra dist " << dijkstra("O")<< endl;
+        cout  << "virtual o dijkstra dist " << virtual_dijkstra("O")<< endl;
+        print_cost("X");
+        // print_cost("O");
+        
     }
-
-    
-    
-
-
+   
+      
 
    
 }
 
 void hex_graph::strat_test(){
-    color rr = color::RED, bb = color::BLUE;
-    int pos=size/2;
-    vector<int> vec_red = {24};
-    move(pos, rr);
+    int xdist, odist, xvdist, ovdist;
+    color rr =color::RED, bb = color::BLUE, ee = color::EMPTY;
+    cout << "xdist, odist, xvdist, ovdist: ";
+    xdist = dijkstra("X"); odist = dijkstra("O");
+    xvdist =virtual_dijkstra("X"); ovdist = virtual_dijkstra("O");
+    cout << xdist << " " << odist << " " << xvdist << " " << ovdist<<endl;
+    cout << "choose position i, j \n";
     draw_board();
-    int dist, vdist;
-    dist = dijkstra("X");
-    vdist = virtual_dijkstra("X");
-    cout << "x dijkstra dist: " << dist << endl;
-    cout << "x virtual dijkstra dist: " << vdist << endl;
-
-    for(int k=0; k<size; k++){
-        move(k, rr);
-        int dijk = dijkstra("X");
-        if(dijk< dist)
-            cout <<k << " x dijkstra dist: " << dijk << endl;
-        move_back(k);
+    int i,j, pos;
+    cin >> i >> j;
+    pos =i*hsize + j;
+    move(pos, rr);
+    cout << "xdist, odist, xvdist, ovdist: ";
+    xdist = dijkstra("X"); odist = dijkstra("O");
+    xvdist =virtual_dijkstra("X"); ovdist = virtual_dijkstra("O");
+    cout << xdist << " " << odist << " " << xvdist << " " << ovdist<<endl;
+    while(true){
+        int i1,j1,k;
+        draw_board();
+        cout << "choose position i, j for O \n";
+        cout <<"k: " << k <<" **************START\n";
+        cin >> i1 >> j1;
+        k =i1*hsize + j1;
+        move(k, bb);
+        cout << "xdist, odist, xvdist, ovdist: ";
+        xdist = dijkstra("X"); odist = dijkstra("O");
+        xvdist =virtual_dijkstra("X"); ovdist = virtual_dijkstra("O");
+        cout << xdist << " " << odist << " " << xvdist << " " << ovdist<<endl;
+        move_back(k);     
     }
-    cout<<"\n****************\n";
-
-    for(int k=0; k<size; k++){
-        
-        move(k, rr);
-        int dijk = virtual_dijkstra("X");
-        if(dijk< vdist)
-            cout <<k << " x virtual_dijkstra dist: " << dijk << endl;
-        move_back(k);
-    }
-
 };
 
 void hex_graph::monte_carlo_test(){
