@@ -19,6 +19,8 @@ class hex_graph {
         color get_color(string str);
 
         int bridge_neighbor(int k, int l);    //return -1, 0, 1, 2
+        vector<int> carrier(int k, int l); // return num of empty carriers betwwen two same color clusters
+        
         bool neighbor(int k, int l);
         bool empty_neighbor(int k, int l); // empty color on integer l
         bool empty_bridge(int k, int l); // empty color on integer l
@@ -36,13 +38,32 @@ class hex_graph {
         void randomplay(int k, color c);
         int monte_carlo();
 
+        vector<int> block_cluster_moves();
+        vector<int> extend_cluster_moves();
+        vector<int> edge_moves();
+        vector<int> center_moves();
+        vector<int> connection_moves();
+       
         vector<int>extend_max_virtual_cluster();
-        vector<int> initial_strat();
         vector<int> plausible_moves();  
+
+        vector<int> block();
+        vector<int> virtual_block();     
+        vector<int> extend();
+        vector<int> virtual_extend();
         void hex_program();
 
         void print_cost(string str);
         void print_path(string str);
+        void print_carrier(int k, int l){
+            cout <<"\n *** print carrier **********\n";
+            for(auto w: carrier(k,l))
+                cout << w << " ";
+            cout << endl;
+        }
+
+        
+  
 
         void edge_test();
         void connection_test();
@@ -51,6 +72,7 @@ class hex_graph {
         void dijkstra_test();
         void monte_carlo_test();
         void strat_test();
+        void carrier_test();
 
     private: 
         int hsize, size;
@@ -68,6 +90,9 @@ class hex_graph {
         vector<vector<int>> bottom_bridge;
         vector<vector<int>> left_bridge;
         vector<vector<int>> right_bridge;
+        
+        vector<int> positions;
+        int recent_index;
 
     
         vector<int> xmincost;
@@ -80,80 +105,80 @@ class hex_graph {
         
 };
 
-  
-vector<int> hex_graph::initial_strat(){
-  
-    cout <<"Using initial strategy" <<endl;
-    vector<int> possible_moves;
-
-
-    for(int k=0;k<size;k++){
-        if(board[k] == color::EMPTY)
-            possible_moves.push_back(k);
-    }
-
- 
-
-    // remove duplicates 
-    sort(possible_moves.begin(), possible_moves.end());
-
-    
-
-    return possible_moves;
-        
-}
 
 vector<int> hex_graph::plausible_moves(){
-    vector<int> possible_moves;
+    vector<int> possible_moves, good_moves;
     color rr =color::RED, bb = color::BLUE, ee = color::EMPTY;
-    // center moves
-    int xdist, odist, xvdist, ovdist;
-    for(int k=0;k<size;k++)
-        if(board[k]==color::EMPTY)
-            possible_moves.push_back(k);
-    return possible_moves;
 
-    for(int k=0;k<size;k++){
-        if(board[k] == ee){
-            cout << "**************START\n";
-            cout << "xdist, odist, xvdist, ovdist: ";
-            xdist = dijkstra("X"); odist = dijkstra("O");
-            xvdist =virtual_dijkstra("X"); ovdist = virtual_dijkstra("O");
-            cout << xdist << " " << odist << " " << xvdist << " " << ovdist<<endl;
-            move(k, rr);
-            cout << "xdist, odist, xvdist, ovdist: ";
-            xdist = dijkstra("X"); odist = dijkstra("O");
-            xvdist =virtual_dijkstra("X"); ovdist = virtual_dijkstra("O");
-            cout << xdist << " " << odist << " " << xvdist << " " << ovdist<<endl;
-            move_back(k);
-            move(k, bb);
-            cout << "xdist, odist, xvdist, ovdist: ";
-            xdist = dijkstra("X"); odist = dijkstra("O");
-            xvdist =virtual_dijkstra("X"); ovdist = virtual_dijkstra("O");
-            cout << xdist << " " << odist << " " << xvdist << " " << ovdist<<endl;
-            move_back(k);
-            cout << "**************END\n";
-        }
+
+    // step 1 always reduce virtual distance or distance of blue cluster
+    // always block (increase) virtual dista
+    //  extend virtual dijkstra distance
+    if(virtual_extend().size()>0){
+        return virtual_extend();
+    }
+    //  extend dijkstra distance
+    if(extend().size()>0){
+        return extend();
+    }
+    //  block virtual dijkstra distance
+    if(virtual_block().size()>0){
+        return virtual_block();
+    }
+    //  block dijkstra distance
+    if(block().size()>0){
+        return block();
     }
 
 
+    if(virtual_connected("O")){
+       return connection_moves();
+    }
 
+    // at the first step (num_moves <2)
+    int center = size/2;
+    if(num_moves <2)
+        return center_moves();
 
-
-
-
-   
+    //temp
+    for(auto w: virtual_cluster(size/2)){
+        for(auto k: virtual_edgelist[w]){
+            if(board[k] == ee)
+                possible_moves.push_back(k);
+        }
+    }
     return possible_moves;
-    
-}
 
+    // block or extend if two clusters have one carrier count
+    if(block_cluster_moves().size()>0){
+        return block_cluster_moves();
+    }
+    // etend one cluster so two blue clusters have bridge with two empty carriers
+    if(extend_cluster_moves().size()>0)
+        return extend_cluster_moves();
+
+      
+    // edge moves : contain all edges of red clusters
+    if(edge_moves().size()>0)
+        return edge_moves();
+
+
+}
 
 
 int main(){
 
-    int hsize=5; // all tests written only for hsize =5;
+    int hsize=7; // all tests written only for hsize =5;
     hex_graph g(hsize);
     srand(time(0));
+
+
+    int size = hsize*hsize;
+    // g.move(size/2 + 2 - hsize, hex_graph::color::BLUE);
+    g.move(size/2, hex_graph::color::RED);
+    g.move(size/2 - 2*hsize + 1, hex_graph::color::RED);
+    cout<< "virtual dijkstra*** "  << g.virtual_dijkstra("X");
+    g.print_cost("X");
 
     // g.edge_test();
     // g.color_move_test();
@@ -161,11 +186,15 @@ int main(){
 
     // g.connection_test();
     // g.dijkstra_test();
+    // g.carrier_test();
 
     // g.strat_test();
 
     // g.monte_carlo_test();
     g.hex_program();
+    
+            
+             
     
 }
 
@@ -186,7 +215,7 @@ void hex_graph::hex_program(){
             cout << "o virtually connected !!!!\n";
         }
  
-        int i,j;
+        int i,j,t=0;
         cout << "Type row and col position for X: \n";
         cin >> i >> j;
         if(i==-1 || j == -1)
@@ -194,6 +223,8 @@ void hex_graph::hex_program(){
         int k =i*hsize +j, best_pos;
         
         move(k, color::RED);
+        recent_index= t++;
+        positions.push_back(k);
         best_pos= monte_carlo();
         if(best_pos == -1){
             cout <<"\n something wrong with monte carlo method\n";
@@ -201,7 +232,13 @@ void hex_graph::hex_program(){
         }
 
         move(best_pos, hex_graph::color::BLUE);
-        
+        recent_index =t++;
+        positions.push_back(best_pos);
+        for(int k=0; k<t; k++)
+            cout << positions[k] << "  ";
+        cout << "\nall position history above\n";
+
+        // print_carrier(size/2 -2*hsize, size/2);
         if(virtual_connected("X"))
             cout << "\n x virtually connected\n";
  
@@ -651,6 +688,48 @@ int hex_graph::bridge_neighbor(int k, int l){
     return false;
 }
 
+vector<int> hex_graph::carrier(int k, int l){
+            vector<int> common_carriers;
+            vector<int> temp_carriers;
+            color c = board[k], rr=color::RED, bb= color::BLUE,  ee= color::EMPTY, c_opp=c;
+            if(c==ee || c != board[l])
+                return common_carriers; // k, l have same colors. return vec with size=0 
+            for(auto ck : cluster(k))
+                for(auto cl: cluster(l)){
+                    if(ck == cl)
+                        return common_carriers;  // must be different cluster return vec with size=0
+                    
+                }
+            for(auto ck : cluster(k))
+                for(auto cl: cluster(l)){
+                    // if(bridge_neighbor(ck,cl)>0){
+                        for(auto w1: edgelist[ck])
+                            for(auto w2: edgelist[cl]){
+                                if(w1==w2 && board[w1] ==ee){
+                                    common_carriers.push_back(w1);
+                                }
+                            }
+                    // }
+                    
+                }
+                sort(common_carriers.begin(), common_carriers.end());
+                
+                for(int k=0; k<common_carriers.size();k++){
+                    if(k < common_carriers.size() -1 ){
+                        if(common_carriers[k] != common_carriers[k+1]){
+                            temp_carriers.push_back(common_carriers[k]);
+                        }
+                    }
+                    if(k == common_carriers.size() -1)
+                        temp_carriers.push_back(common_carriers[k]);
+                    
+                }
+
+            
+            return temp_carriers;
+            
+        }
+        
 bool hex_graph::empty_neighbor(int k, int l){
     return neighbor(k,l) && board[l] == color::EMPTY;
 }
@@ -1515,12 +1594,14 @@ int hex_graph::monte_carlo(){
         }
     }
 
-    cout << "best o position: (" << best_pos /hsize << ", " << best_pos % hsize<<")" << endl;
-    cout <<"\n";
-    cout << temp << "  " << best_pos;
+    // cout << "best o position: (" << best_pos /hsize << ", " << best_pos % hsize<<")" << endl;
+    // cout <<"\n";
+    // cout << temp << "  " << best_pos;
     return best_pos;
     
 };
+
+
 
 
 
@@ -1921,10 +2002,11 @@ void hex_graph::dijkstra_test(){
         draw_board();
         // cout  << " x dijkstra dist " << dijkstra("X")<< endl;
         cout  << "virtual  x dijkstra dist " << virtual_dijkstra("X")<< endl;
-        // cout  << " O dijkstra dist " << dijkstra("O")<< endl;
-        cout  << "virtual o dijkstra dist " << virtual_dijkstra("O")<< endl;
-        print_cost("X");
+        cout  << " O dijkstra dist " << dijkstra("O")<< endl;
+        // cout  << "virtual o dijkstra dist " << virtual_dijkstra("O")<< endl;
+        // print_cost("X");
         // print_cost("O");
+        print_carrier(size/2, size/2 - 2*hsize);
         
     }
    
@@ -1982,3 +2064,315 @@ void hex_graph::monte_carlo_test(){
     draw_board();
     monte_carlo();
 };
+
+void hex_graph::carrier_test(){
+    color rr = color::RED, bb = color::BLUE, ee = color::EMPTY;
+    int i,j, k, a, b, c, d;
+    string str ="e";
+    while(true){
+        draw_board();
+        cout << "type position i, j for red \n";
+        cin >> i >> j;
+        k= i*hsize + j;
+        move(k, rr);
+        draw_board();
+        cout << "type position i, j for blue \n";
+        cin >> i >> j;
+        k= i*hsize + j;
+        move(k, bb);
+        draw_board();
+
+        cout << "type e for break \n";
+        cin >> str;
+        if(str == "e")
+            break;
+
+    }
+
+    cout << "type positions a, b and c, d to see the number of carriers \n";
+    cin >> a >> b >> c >> d;
+    draw_board();
+    print_carrier(a*hsize + b, c*hsize + d);
+
+
+
+
+}
+
+
+
+vector<int> hex_graph::block_cluster_moves(){
+    // block or extend if two clusters have one carrier count
+    vector<int> possible_moves, unique_moves;
+    color rr =color::RED, bb = color::BLUE, ee = color::EMPTY;
+    cout << "block cluster moves ***\n";
+    for(int k=0; k<size; k++)
+        for(int l=0;l<size; l++){
+            if(carrier(k,l).size()==1){
+                if(board[k] == rr){
+                    possible_moves.push_back(carrier(k,l)[0]);
+                }
+                  
+            }
+        }
+    if(possible_moves.size() <2)
+        return possible_moves;
+    assert(possible_moves.size()>=2);
+    sort(possible_moves.begin(), possible_moves.end());
+    for(auto it=possible_moves.begin(); it<possible_moves.end() -1;it++){
+        int prev = *(it), curr= *(it+1);
+        if(prev!= curr)
+            unique_moves.push_back(prev);
+        if(it==possible_moves.end() -2)
+            unique_moves.push_back(curr);
+    }
+
+    return possible_moves;
+}
+
+
+vector<int> hex_graph::extend_cluster_moves(){
+    // extend so two blue clusters have more than one carrier count
+    vector<int> possible_moves, unique_moves;
+    color rr =color::RED, bb = color::BLUE, ee = color::EMPTY;
+    cout << "***extend cluster moves ***\n";
+    for(int k=0; k<size; k++)
+        for(int l=0;l<size; l++){
+            if(board[k] == bb && board[l] == bb && carrier(k,l).size() < 1){
+                for(auto w: edgelist[l]){
+                    if(board[w] == ee && bridge_neighbor(k, l)==2){
+                        
+                            possible_moves.push_back(w);
+                    
+                        
+                    }
+                }
+            }
+        }
+    if(possible_moves.size() <2)
+        return possible_moves;
+    assert(possible_moves.size()>=2);
+    sort(possible_moves.begin(), possible_moves.end());
+    for(auto it=possible_moves.begin(); it<possible_moves.end() -1;it++){
+        int prev = *(it), curr= *(it+1);
+        if(prev!= curr)
+            unique_moves.push_back(prev);
+        if(it==possible_moves.end() -2)
+            unique_moves.push_back(curr);
+    }
+
+    return unique_moves;
+}
+
+vector<int> hex_graph::extend(){ // extend blue player 
+    vector<int> possible_moves;
+    int now = dijkstra("O");
+    cout <<"*extend* " << now;
+    for(int k=0;k<size;k++){
+        if(board[k] == color::EMPTY){
+            move(k, color::BLUE);
+            if(dijkstra("O") < now){
+                possible_moves.push_back(k);
+            };
+            move_back(k);
+
+        }
+    }
+    return possible_moves;
+}
+
+
+vector<int> hex_graph::virtual_extend(){ // extend blue player 
+    vector<int> possible_moves;
+    int now = virtual_dijkstra("O");
+    cout <<"*virtual extend* " << now;
+    for(int k=0;k<size;k++){
+        if(board[k] == color::EMPTY){
+            move(k, color::BLUE);
+            if(virtual_dijkstra("O") < now){
+                possible_moves.push_back(k);
+            };
+            move_back(k);
+
+        }
+    }
+    return possible_moves;
+}
+
+vector<int> hex_graph::block(){ // block red player
+    vector<int> possible_moves;
+    int now = dijkstra("X");
+    cout <<"*block* " << now;
+    for(int k=0;k<size;k++){
+        if(board[k] == color::EMPTY){
+            move(k, color::BLUE);
+            if(dijkstra("X") > now){
+                possible_moves.push_back(k);
+            };
+            move_back(k);
+
+        }
+    }
+    return possible_moves;
+};
+vector<int> hex_graph::virtual_block(){
+    vector<int> possible_moves;
+    int now = virtual_dijkstra("X");
+    cout <<"*virtual block* " << now;
+    for(int k=0;k<size;k++){
+        if(board[k] == color::EMPTY){
+            move(k, color::BLUE);
+            if(virtual_dijkstra("X") > now){
+                possible_moves.push_back(k);
+            };
+            move_back(k);
+
+        }
+    }
+    return possible_moves;
+};  
+
+vector<int> hex_graph::edge_moves(){ // include edges of all red clusters and block
+    color  rr =color::RED, bb =color::BLUE, ee= color::EMPTY;
+    vector<int> possible_moves, unique_moves;
+    cout <<"**** edge moves***\n";
+    for(int k=0;k<size;k++)
+        if(board[k] == rr){
+            for(auto w: cluster(k)){
+                for(auto v: edgelist[w])
+                    if(board[v] == ee){
+                     
+                        possible_moves.push_back(v);
+                    
+                    }
+            }
+
+            for(auto w: cluster(k)){
+                for(auto v: virtual_edgelist[w])
+                    if(board[v] == ee){
+                        
+                        possible_moves.push_back(v);
+                    
+                    }
+            }
+    
+        }
+
+    assert(possible_moves.size()>=2);
+    sort(possible_moves.begin(), possible_moves.end());
+    for(auto it=possible_moves.begin(); it< possible_moves.end() -1; it++){
+        int prev = *it, curr = *(it+1);
+        if(prev!=curr)
+            unique_moves.push_back(prev);
+        if(it == possible_moves.end() -2)
+            unique_moves.push_back(curr);
+    }
+
+    return unique_moves;
+
+}
+
+
+
+ vector<int> hex_graph::center_moves(){
+    vector<int> possible_moves;
+    int center = size/2;
+    // red move: center
+    cout << "**center moves**\n";
+    if(board[center] == color::RED){
+        possible_moves.push_back(center - hsize);
+        possible_moves.push_back(center + hsize);
+        return possible_moves;
+    }
+    // red move: not a neighbor of center
+    if(!neighbor(positions[0], center) && board[center]== color::EMPTY){
+        possible_moves.push_back(center);
+        return possible_moves;
+    }
+
+    // red move: neighbor of center (6 of them)
+    if(board[center - hsize] == color::RED || board[center + hsize] == color::RED){
+        possible_moves.push_back(center);
+        return possible_moves;
+    }
+    for(auto w: edgelist[center]){
+        if(board[w] == color::RED){
+            if(w == center -1){
+                possible_moves.push_back(center + hsize);
+            }
+            if(w == center +1){
+                possible_moves.push_back(center - hsize);
+            }
+            if(w == center - hsize+1){
+                possible_moves.push_back(center + hsize);
+            }
+            if(w == center + hsize - 1){
+                possible_moves.push_back(center - hsize);
+            }
+
+        }
+
+    }
+    return possible_moves;
+    
+
+    
+    
+}
+
+
+vector<int> hex_graph::connection_moves(){
+    color bb =color::BLUE, ee =color::EMPTY;
+    vector<int> possible_moves;
+
+    int dist_prev = dijkstra("O");
+
+    for(int k=0; k<size; k++){
+        if(board[k] == bb){
+            bool left =false, right=false;
+            for(auto w: virtual_cluster(k)){
+                for(auto w1: left_side){
+                    if(w1 == w)
+                        left = true;
+                }
+                for(auto vec: left_bridge){
+                    int first = vec[0], second = vec[1], third = vec[2];
+                    if(board[first]==ee && board[second]==ee && board[third] == bb){
+                        left = true;
+                    }
+                }
+                for(auto w1: right_side){
+                    if(w1 == w)
+                        right = true;
+                }
+                for(auto vec: right_bridge){
+                    int first = vec[0], second = vec[1], third = vec[2];
+                    if(board[first]==ee && board[second]==ee && board[third] == bb){
+                        right = true;
+                    }
+                }
+            }
+
+            if(left && right){
+                for(int i1=0;i1<virtual_cluster(k).size(); i1++)
+                    for(int i2=0;i2<virtual_cluster(k).size(); i2++){
+                        if(i1!=i2 && bridge_neighbor(i1,i2)==2){
+                            for(auto w1: edgelist[i1])
+                                for(auto w2: edgelist[i2]){
+                                    if(w1 == w2 && board[w1]==ee){
+                                        possible_moves.push_back(w1);
+                                        return possible_moves;
+                                    }
+
+                                }
+                        }
+                    }
+            }
+        }
+    }
+    
+    return possible_moves;
+     
+  
+};
+
