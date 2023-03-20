@@ -62,12 +62,16 @@ class hex_graph {
         int num_play =5000;
         vector<color> board;
         vector<color> board_orig;
+        vector<int> *one_side;
+        vector<int> *opposite_side;
         vector<int> top_side;
         vector<int> bottom_side;
         vector<int> left_side;
         vector<int> right_side;
         vector< vector<int> > edgelist;
         vector< vector<int> > virtual_edgelist;
+        vector<vector<int>> *one_side_bridge;
+        vector<vector<int>> *opposite_side_bridge;
         vector<vector<int>> top_bridge;
         vector<vector<int>> bottom_bridge;
         vector<vector<int>> left_bridge;
@@ -136,8 +140,8 @@ vector<int> hex_graph::plausible_moves(){
 
 
 int main(){
-    int hsize=11; // change hsize to 5 for testing. all tests are written for hsize =5.;
-    int size = hsize*hsize;
+    const int hsize =5; // const int hsize=7; // change hsize to 5 for testing. all tests are written for hsize =5.;
+    // int size = hsize*hsize;
     hex_graph g(hsize);
     srand(time(0));
 
@@ -517,20 +521,16 @@ bool hex_graph::connected(string str){
     int c_cnt =0;
 
     // setup one side and opposite side
-    vector<int> one_side; 
-    vector<int> opposite_side;
+
+ 
 
     if(str == "X"){
-        for(auto w: top_side)
-            one_side.push_back(w);
-        for(auto w: bottom_side)
-            opposite_side.push_back(w);
+        one_side = &top_side;
+        opposite_side = &bottom_side;
     }
     if(str == "O"){
-        for(auto w: left_side)
-            one_side.push_back(w);
-        for(auto w: right_side)
-            opposite_side.push_back(w);
+        one_side = &left_side;
+        opposite_side = &right_side;
     }
 
     for(int k=0;k<size;k++)
@@ -544,7 +544,7 @@ bool hex_graph::connected(string str){
     if(c == color::BLUE)
         c_opp = color::RED;
 
-    for(auto k: one_side){
+    for(auto k: *one_side){
         if(board[k] == c){
             cSet[k]=true; c_cnt++;
         }
@@ -571,7 +571,7 @@ bool hex_graph::connected(string str){
         }   
     }
     
-    for(auto k: opposite_side){
+    for(auto k: *opposite_side){
         if(cSet[k])
             return true;
     }
@@ -637,26 +637,21 @@ bool hex_graph::virtual_connected(string str){
     color c_empty = color::EMPTY;
 
     // setuo one side and opposite side
-    vector<int> one_side, opposite_side;
     
     if(str == "X"){
-        for(auto w: top_side)
-            one_side.push_back(w);
-        for(auto w: bottom_side)
-            opposite_side.push_back(w);
+        one_side = &top_side;
+        opposite_side = &bottom_side;
     }
     if(str == "O"){
-        for(auto w: left_side)
-            one_side.push_back(w);
-        for(auto w: right_side)
-            opposite_side.push_back(w);
+        one_side = &left_side;
+        opposite_side = &right_side;
     }
 
     for(int k=0;k<size;k++)
         cSet[k]= false;
     
     // initial update of cSet at oneside
-    for(auto k: one_side){
+    for(auto k: *one_side){
         if(board[k] == c){
             cSet[k]=true; c_cnt++;
         }
@@ -706,7 +701,7 @@ bool hex_graph::virtual_connected(string str){
         }
 
         // check if connected to opposite side
-        for(auto w: opposite_side){
+        for(auto w: *opposite_side){
             if(cSet[w])
                 return true;
         }
@@ -746,15 +741,13 @@ bool hex_graph::virtual_connected(string str){
 
 bool hex_graph::virtual_connected(int k1, int k2){
     // setup cSet initially set false,  c_cnt: 0
-    bool cSet[size];
+    vector<bool> cSet(size, false);
     int c_cnt =0;
 
     color c1 = board[k1], c2 = board[k2], ee = color::EMPTY;
     if(c1!=c2 || c1==ee || c2 ==ee)
         return false;
 
-    for(int k=0;k<size;k++)
-        cSet[k]= false;
 
     // initial update of cSet
     cSet[k1] = true; c_cnt =1;
@@ -802,11 +795,10 @@ vector<int> hex_graph::cluster(int k){
     }
 
     color c = board[k]; // either RED or BLUE
-    bool cSet[size]; int c_cnt =0;
     // initial setup for cSet
-    for(int i=0;i<size;i++){
-        cSet[i] = false;
-    }
+    vector <bool> cSet(size, false); int c_cnt =0;
+
+
     cSet[k] = true; c_cnt++;
     shape.push_back(k);
     int temp =c_cnt;
@@ -840,11 +832,8 @@ vector<int> hex_graph::virtual_cluster(int k){
     }
 
     color c = board[k]; // either RED or BLUE
-    bool cSet[size]; int c_cnt =0;
+    vector <bool> cSet(size, false); int c_cnt =0;
     // initial setup for cSet
-    for(int i=0;i<size;i++){
-        cSet[i] = false;
-    }
     cSet[k] = true; c_cnt++;
     shape.push_back(k);
     int temp =c_cnt;
@@ -885,25 +874,17 @@ int hex_graph::dijkstra(string str){
 
     // initial setup
     int dist = 0, c_cnt = 0, o_cnt = 0; // dist (time), c_cnt: number of elements reachable by time t =dist
-    bool cSet[size], oSet[size]; // o_cnt: size of oSet
-    vector<int> mincost(size); // initially set to be -1 mincost is same as first passage time
-    for(int k=0;k<size;k++){
-        cSet[k]=false; oSet[k] = false;  mincost[k]=-1;  
-    }
+    vector<bool> cSet(size, false), oSet(size, false); // o_cnt: size of oSet
+    vector<int> mincost(size, -1); // initially set to be -1 mincost is same as first passage time
 
     // setup one side and opposite side
-    vector<int> one_side, opposite_side;
     if(str == "X"){
-        for(auto w: top_side)
-            one_side.push_back(w); 
-        for(auto w: bottom_side)
-            opposite_side.push_back(w); 
+        one_side = &top_side;
+        opposite_side = &bottom_side;
     }
     if(str == "O"){
-        for(auto w: left_side)
-            one_side.push_back(w); 
-        for(auto w: right_side)
-            opposite_side.push_back(w); 
+        one_side = &left_side;
+        opposite_side = &right_side;
     }
 
     color c = str == "X" ? color::RED : color::BLUE;
@@ -916,7 +897,7 @@ int hex_graph::dijkstra(string str){
     // initial update of cSet and oSet
     // step 1 include all elements whcih can be reached at time 0 to cSet
     dist =0;
-    for(auto k: one_side){
+    for(auto k: *one_side){
         if(board[k] == c){
             cSet[k] = true; c_cnt++; mincost[k] = 0;
         }
@@ -930,7 +911,7 @@ int hex_graph::dijkstra(string str){
 
 
     // step 2 include all empty color neighbors of cSet and one side to oSet 
-   for(auto k: one_side){
+   for(auto k: *one_side){
         if(board[k]== color::EMPTY){
             oSet[k] = true; o_cnt++; mincost[k]=1;
         }
@@ -1015,7 +996,7 @@ int hex_graph::dijkstra(string str){
     // either cSet reaches opposite side in min_dist time or cannot be reached (return -1)
     // or oppoaite side not reachable
     int min_dist =-1;
-    for(auto k: opposite_side){
+    for(auto k: *opposite_side){
         if(mincost[k]>=0 && min_dist<0)
             min_dist = mincost[k]; 
         if(min_dist > mincost[k] && mincost[k] >=0){
@@ -1041,57 +1022,34 @@ int hex_graph::virtual_dijkstra(string str){
         c_opp = color::RED;
 
     int dist = 0, c_cnt = 0, o_cnt = 0; // dist (time), c_cnt: number of elements reachable by time t =dist
-    bool cSet[size], oSet[size]; // o_cnt: size of oSet
-    vector<int> mincost(size); // initially set to be -1 mincost is same as first passage time
-    for(int k=0;k<size;k++){
-        cSet[k]=false; oSet[k] = false;  mincost[k]=-1;  
-    }
+    vector<bool> cSet(size, false), oSet(size, false); // o_cnt: size of oSet
+    vector<int> mincost(size, -1); // initially set to be -1 mincost is same as first passage time
 
     // setup one side and opposite side
-    vector<int> one_side, opposite_side;
-    vector<vector<int>> one_side_bridge, opposite_side_bridge;
-    one_side_bridge.resize(hsize-1);
-    opposite_side_bridge.resize(hsize-1);
+
 
     if(str == "X"){
-        for(auto w: top_side)
-            one_side.push_back(w); 
-        for(auto w: bottom_side)
-            opposite_side.push_back(w); 
-        for(int k=0;k<hsize-1; k++){
-            for(auto w: top_bridge[k])
-                one_side_bridge[k].push_back(w);
-        }
-        for(int k=0;k<hsize-1; k++){
-            for(auto w: bottom_bridge[k])
-                opposite_side_bridge[k].push_back(w);
-        }
-      
+        one_side =&top_side;
+        opposite_side = &bottom_side;
+        one_side_bridge = &top_bridge;
+        opposite_side_bridge = &bottom_bridge;   
     }
     if(str == "O"){
-        for(auto w: left_side)
-            one_side.push_back(w); 
-        for(auto w: right_side)
-            opposite_side.push_back(w); 
-        for(int k=0;k<hsize-1; k++){
-            for(auto w: left_bridge[k])
-                one_side_bridge[k].push_back(w);
-        }
-        for(int k=0;k<hsize-1; k++){
-            for(auto w: right_bridge[k])
-                opposite_side_bridge[k].push_back(w);
-        }
+        one_side = &left_side;
+        opposite_side = &right_side;
+        one_side_bridge = &left_bridge;
+        opposite_side_bridge = &right_bridge;         
     }
 
 
     // initial aetup of cSet and oSet at time 0
     // step 1 include all elements which can be reached by time=0 to cSet
-    for(auto k: one_side){
+    for(auto k: *one_side){
         if(board[k] == c){
             cSet[k] = true; c_cnt++; mincost[k] = 0;
         }
     }
-    for(auto br: one_side_bridge){
+    for(auto br: *one_side_bridge){
         int first=br[0], second=br[1], third=br[2];
         if(board[third] == c && board[first]!=c_opp && board[second]!= c_opp){
             cSet[third]=true; c_cnt++; mincost[third] = 0;
@@ -1106,12 +1064,12 @@ int hex_graph::virtual_dijkstra(string str){
                 }
         
     // step 2 include empty colors on one side and  empty colors neighbors(neighbor, bridge neighbor) of cSet to oSet
-   for(auto k: one_side){
+   for(auto k: *one_side){
         if(board[k]== color::EMPTY){
             oSet[k] = true; o_cnt++; mincost[k]=1;
         }
     }
-    for(auto br: one_side_bridge){
+    for(auto br: *one_side_bridge){
         int first=br[0], second=br[1], third=br[2];
         if(board[third] == color::EMPTY && board[first]==color::EMPTY 
            && board[second] == color::EMPTY){
@@ -1168,8 +1126,6 @@ int hex_graph::virtual_dijkstra(string str){
                 cSet[k] =true; c_cnt++; oSet[k] = false; o_cnt--;
             }
             
-    
-
         // update oSet
         // step 2 include all neighboring empty colors of cSet to oSet 
         for(int k=0;k<size;k++){
@@ -1231,13 +1187,13 @@ int hex_graph::virtual_dijkstra(string str){
 
     // either cSet reaches opposite side in time = min_dist or cannot be reached (-1)
     int min_dist =-1;
-    for(auto k: opposite_side){
+    for(auto k: *opposite_side){
         if(cSet[k] && min_dist<0)
             min_dist = mincost[k];
         if(cSet[k] && min_dist> mincost[k])
             min_dist = mincost[k];
     }
-    for(auto br: opposite_side_bridge){
+    for(auto br: *opposite_side_bridge){
         int first=br[0], second=br[1], third=br[2];
         if(cSet[third] && board[first] == color::EMPTY && board[second] == color::EMPTY
             && board[third] != c_opp)
@@ -1637,7 +1593,6 @@ void hex_graph::dijkstra_test(){
         // cout  << "virtual o dijkstra dist " << virtual_dijkstra("O")<< endl;
         
     }
-   
    
 }
 
